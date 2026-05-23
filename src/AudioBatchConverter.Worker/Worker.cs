@@ -43,10 +43,24 @@ public sealed class ConversionWorker : BackgroundService
         if (File.Exists(Path.ChangeExtension(path, ".mp3")))
         {
             _tracker.SetDone(path, 0);
+            if (!job.KeepOriginals)
+            {
+                try
+                {
+                    File.Delete(path);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("Could not delete original: {File} — {Error}", path, ex.Message);
+                }
+            }
             return;
         }
 
-        _tracker.SetConverting(path);
+        var sourceBytes = 0L;
+        try { sourceBytes = new FileInfo(path).Length; } catch { }
+
+        _tracker.SetConverting(path, sourceBytes);
         var sw = Stopwatch.StartNew();
         _logger.LogInformation("Converting  {File}", path);
 
@@ -56,7 +70,9 @@ public sealed class ConversionWorker : BackgroundService
 
             if (result.Succeeded)
             {
-                _tracker.SetDone(path, sw.Elapsed.TotalSeconds);
+                var convertedBytes = 0L;
+                try { convertedBytes = new FileInfo(Path.ChangeExtension(path, ".mp3")).Length; } catch { }
+                _tracker.SetDone(path, sw.Elapsed.TotalSeconds, convertedBytes);
 
                 if (!job.KeepOriginals)
                 {

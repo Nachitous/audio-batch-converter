@@ -9,6 +9,9 @@ public sealed class WorkerSettings
     // Set to /volume1 on the NAS; map that volume in docker-compose.
     public string BrowserRoot { get; set; } = "/";
 
+    // Path where job state is persisted between restarts. Relative to CWD (/app in Docker).
+    public string PersistencePath { get; set; } = "jobs.json";
+
     public HashSet<string> GetExtensionSet() =>
         new(
             Extensions

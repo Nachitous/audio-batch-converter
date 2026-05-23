@@ -5,6 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-05-23
+
+### Added
+- **Size savings tracking**: every completed conversion now shows source size → MP3 size with percentage reduction
+- **"X saved" summary stat** in the web UI toolbar (orange, appears once any conversion completes)
+- **Per-file size sub-line** in the NAS web UI job list (e.g. `45.2 MB → 12.8 MB (-72%)`)
+- **Space saved summary** in the Windows UI completion dialog (e.g. `1.2 GB saved.`)
+- **Job persistence** in the NAS Worker: job state survives container restarts and page closes — `jobs.json` is written on every state change and restored on startup; interrupted jobs are marked as errors with "Interrupted by restart"
+
+### Fixed
+- ExitCode race condition in `DefaultProcessRunner`: reading `ExitCode` before `WaitForExit()` caused "Process must exit before requested information can be determined" on all but the first file
+- Source files not deleted after conversion: early-return path (MP3 already exists) skipped the `KeepOriginals` check
+- Convert button staying as "Queueing…" after navigating to a new folder in the web UI
+
 ## [1.1.0] - 2026-05-23
 
 ### Added

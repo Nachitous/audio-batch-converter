@@ -79,6 +79,7 @@
     .stat-item.converting .n { color: var(--accent); }
     .stat-item.done .n       { color: var(--green); }
     .stat-item.error .n      { color: var(--red); }
+    .stat-item.saved .n      { color: var(--orange); }
 
     /* ── buttons ── */
     button {
@@ -200,6 +201,16 @@
       grid-column: 2;
       padding-top: 1px;
     }
+
+    .job-size {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: monospace;
+      grid-column: 2;
+      padding-top: 1px;
+    }
+
+    .job-size .size-saving { color: var(--orange); }
 
     .job-time {
       font-size: 12px;
@@ -397,6 +408,7 @@
     <span class="stat-item converting"><span class="n" id="s-converting">0</span> converting</span>
     <span class="stat-item done"><span class="n" id="s-done">0</span> done</span>
     <span class="stat-item error"><span class="n" id="s-error">0</span> failed</span>
+    <span class="stat-item saved" id="stat-saved" style="display:none"><span class="n" id="s-saved"></span> saved</span>
   </div>
 </div>
 
@@ -452,7 +464,9 @@
 
   async function browse(path) {
     currentPath = '';
-    document.getElementById('btn-convert').disabled = true;
+    const btnConvert = document.getElementById('btn-convert');
+    btnConvert.disabled = true;
+    btnConvert.textContent = 'Convert';
     document.getElementById('preview-chip').style.display = 'none';
     document.getElementById('path-display').textContent = 'Loading…';
     document.getElementById('browser-list').innerHTML = '';
@@ -582,6 +596,14 @@
     document.getElementById('s-done').textContent       = s.done;
     document.getElementById('s-error').textContent      = s.errors;
 
+    const savedEl = document.getElementById('stat-saved');
+    if (s.savedBytes > 0) {
+      document.getElementById('s-saved').textContent = formatBytes(s.savedBytes);
+      savedEl.style.display = '';
+    } else {
+      savedEl.style.display = 'none';
+    }
+
     const total = s.queued + s.converting + s.done + s.errors;
     document.getElementById('stats').style.display    = total > 0 ? '' : 'none';
     document.getElementById('btn-clear').style.display = (s.done + s.errors) > 0 ? '' : 'none';
@@ -630,11 +652,15 @@
 
       for (const j of files) {
         const badge = statusBadge(j);
+        const sizeInfo = j.status === 'done' && j.sourceBytes > 0
+          ? `<div class="job-size">${formatBytes(j.sourceBytes)} → ${formatBytes(j.convertedBytes)} <span class="size-saving">(-${Math.round((1 - j.convertedBytes / j.sourceBytes) * 100)}%)</span></div>`
+          : '';
         html += `<div class="job-row">
           ${badge}
           <span class="job-name" title="${esc(j.path)}">${esc(j.name)}</span>
           <span class="job-time">${j.elapsed != null ? j.elapsed.toFixed(1) + 's' : ''}</span>
           ${j.error ? `<span class="job-error" title="${esc(j.error)}">${esc(j.error)}</span>` : ''}
+          ${sizeInfo}
         </div>`;
       }
 
@@ -661,6 +687,15 @@
   async function clearDone() {
     await fetch('/api/jobs', { method: 'DELETE' });
     fetchJobs();
+  }
+
+  // ── helpers ────────────────────────────────────────────────────────────────
+  function formatBytes(n) {
+    if (!n) return '';
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+    if (n < 1073741824) return (n / 1048576).toFixed(1) + ' MB';
+    return (n / 1073741824).toFixed(2) + ' GB';
   }
 
   // ── XSS escape ─────────────────────────────────────────────────────────────

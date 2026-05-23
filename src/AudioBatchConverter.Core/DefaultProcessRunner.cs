@@ -33,6 +33,10 @@ public class DefaultProcessRunner : IProcessRunner
         var stderrTask = Task.Run(() => process.StandardError.ReadToEnd());
         await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
 
+        // Pipes draining doesn't guarantee the OS process record is gone yet.
+        // WaitForExit() ensures HasExited == true before we read ExitCode.
+        process.WaitForExit();
+
         return (process.ExitCode, stderrTask.Result);
     }
 }

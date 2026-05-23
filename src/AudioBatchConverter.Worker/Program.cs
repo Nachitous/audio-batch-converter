@@ -115,16 +115,18 @@ app.MapGet("/api/jobs", (ConversionTracker tracker) =>
 {
     var jobs = tracker.GetAll().Select(j => new
     {
-        path    = j.Path,
-        name    = Path.GetFileName(j.Path),
-        dir     = Path.GetDirectoryName(j.Path) ?? "",
-        status  = j.Status.ToString().ToLowerInvariant(),
-        elapsed = j.ElapsedSeconds,
-        error   = j.Error,
+        path           = j.Path,
+        name           = Path.GetFileName(j.Path),
+        dir            = Path.GetDirectoryName(j.Path) ?? "",
+        status         = j.Status.ToString().ToLowerInvariant(),
+        elapsed        = j.ElapsedSeconds,
+        error          = j.Error,
+        sourceBytes    = j.SourceBytes,
+        convertedBytes = j.ConvertedBytes,
     });
 
-    var (q, cv, d, e) = tracker.GetStats();
-    return Results.Ok(new { stats = new { queued = q, converting = cv, done = d, errors = e }, jobs });
+    var (q, cv, d, e, saved) = tracker.GetStats();
+    return Results.Ok(new { stats = new { queued = q, converting = cv, done = d, errors = e, savedBytes = saved }, jobs });
 });
 
 // ── clear completed / failed jobs ─────────────────────────────────────────────

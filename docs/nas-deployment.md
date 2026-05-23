@@ -37,13 +37,11 @@ defined in the stack's `.env` file — no new variables are needed.
 
 ### 2 — Copy the updated file to the NAS
 
-From Windows, over the SMB share — replace `<nas-share>` with your NAS share path:
+Edit `\\<nas-share>\docker\media-server\docker-compose.yml` directly, or copy from a local file:
 
+```powershell
+Copy-Item docker-compose.yml "\\<nas-share>\docker\media-server\docker-compose.yml"
 ```
-copy docker-compose.yml \\<nas-share>\docker\media-server\docker-compose.yml
-```
-
-Or edit the file directly on the share with any text editor.
 
 ### 3 — Pull the image and start the service
 
@@ -60,6 +58,12 @@ Only `audio-batch-converter` is affected; all other containers keep running.
 
 ## Updating to a new version
 
+The auto-update script (`/volume1/docker/scripts/auto-update.sh`) already covers the
+`media-server` stack, so `audio-batch-converter` is updated automatically alongside
+the other services whenever it runs (scheduled via DSM Task Scheduler).
+
+To update manually:
+
 ```powershell
 $NAS = "$NAS_USER@$NAS_HOST"
 "/c/Program Files/PuTTY/plink" -ssh -pw $NAS_PASS -P 22 $NAS `
@@ -74,7 +78,7 @@ Settings are environment variables in the `environment:` block of the service de
 
 | Variable | Description |
 |----------|-------------|
-| `Worker__BrowserRoot` | Root path the UI is allowed to browse (default: `${MUSIC_DIR}`) |
+| `Worker__BrowserRoot` | Root path the UI is allowed to browse (default: `/volume1`) |
 | `Worker__Extensions` | Comma-separated audio extensions to find (default: `.flac,.wav,.ogg,.m4a,.aac,.wma,.opus`) |
 
 ---

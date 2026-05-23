@@ -227,10 +227,13 @@ public partial class ConversionForm : Form
         _btnCancel.Text = "Exit";
         _btnCancel.Enabled = true;
 
-        string title   = "Audio Batch Converter";
+        string title = "Audio Batch Converter";
+        string savings = _engine.TotalBytesSaved > 0
+            ? $"\n{FormatBytes(_engine.TotalBytesSaved)} saved."
+            : "";
         string message = _hasErrors
-            ? "Conversion finished — some files failed.\nCheck the log for details."
-            : "All files converted successfully.";
+            ? $"Conversion finished — some files failed.{savings}\nCheck the log for details."
+            : $"All files converted successfully.{savings}";
         ToolTipIcon tipIcon = _hasErrors ? ToolTipIcon.Warning : ToolTipIcon.Info;
 
         _lblCurrentFile.Text = _hasErrors ? "Done — some files failed." : "Done — all files converted.";
@@ -272,4 +275,13 @@ public partial class ConversionForm : Form
 
     private static string TruncatePath(string path, int maxLen = 70) =>
         path.Length <= maxLen ? path : "…" + path[^(maxLen - 1)..];
+
+    private static string FormatBytes(long bytes) =>
+        bytes switch
+        {
+            < 1024 => $"{bytes} B",
+            < 1024 * 1024 => $"{bytes / 1024.0:0.#} KB",
+            < 1024L * 1024 * 1024 => $"{bytes / (1024.0 * 1024):0.#} MB",
+            _ => $"{bytes / (1024.0 * 1024 * 1024):0.##} GB",
+        };
 }

@@ -13,6 +13,10 @@ public class ConversionEngine
     public IReadOnlyList<ConversionJob> Jobs => _jobs;
     public bool KeepOriginals { get; set; }
 
+    public long TotalBytesSaved =>
+        _jobs.Where(j => j.Status == JobStatus.Done && j.SourceBytes > 0)
+             .Sum(j => j.SourceBytes - j.ConvertedBytes);
+
     public event EventHandler<JobStatusChangedEventArgs>? JobStatusChanged;
     public event EventHandler<int>? ProgressChanged;
 
@@ -41,12 +45,14 @@ public class ConversionEngine
 
             var job = _jobs[i];
             job.Status = JobStatus.InProgress;
+            try { job.SourceBytes = new FileInfo(job.SourcePath).Length; } catch { }
             RaiseJobChanged(job);
 
             var result = await _converter.ConvertAsync(job.SourcePath, ct);
 
             if (result.Succeeded)
             {
+                try { job.ConvertedBytes = new FileInfo(job.TargetPath).Length; } catch { }
                 job.Status = JobStatus.Done;
                 if (!KeepOriginals)
                 {

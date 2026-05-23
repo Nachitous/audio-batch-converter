@@ -1,5 +1,5 @@
 #define AppName "Audio Batch Converter"
-#define AppVersion "1.1.0"
+#define AppVersion "2.0.0"
 #define AppPublisher "Nachitous"
 #define AppURL "https://github.com/Nachitous/audio-batch-converter"
 #define AppExeName "AudioBatchConverter.UI.exe"
