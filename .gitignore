@@ -1,0 +1,27 @@
+## .NET / Visual Studio
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.userprefs
+*.DotSettings.user
+TestResults/
+[Pp]ackages/
+*.nupkg
+*.snupkg
+project.lock.json
+
+## Build output
+publish/
+artifacts/
+installer/Output/
+
+## OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+## Logs
+*.log
+audio-batch-converter-errors.txt
