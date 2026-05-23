@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-05-23
+
+### Fixed
+- Shell extension: correct `QueryContextMenu` flag check — `CMF_EXPLORE` (normal right-click) was incorrectly treated as a suppression flag, so the context menu entry never appeared
+- Installer: copy full Shell publish output (was missing `runtimeconfig.json`, causing silent COM load failure)
+
+### Changed
+- Context menu entry renamed from "Convert to MP3" to "Convert audio in folder to MP3"
+- Context menu entry now shows the app icon
+- Removed "Convert folder…" secondary context menu entry
+
 ## [1.0.4] - 2026-05-23
 
 ### Fixed

@@ -16,18 +16,18 @@ namespace AudioBatchConverter.Shell;
 [ProgId("AudioBatchConverter.ContextMenuHandler")]
 public class ContextMenuHandler : IShellExtInit, IContextMenu
 {
-    // Command offsets relative to idCmdFirst
     private const uint CmdConvert = 0;
-    private const uint CmdOpenFolder = 1;
-    private const uint VerbsAdded = 2;
+    private const uint VerbsAdded = 1;
 
     private static readonly (uint Offset, string Verb, string Label)[] Verbs =
     [
-        (CmdConvert,    "ConvertToMp3",       "Convert to MP3"),
-        (CmdOpenFolder, "ConvertFolderPicker", "Convert folder…"),
+        (CmdConvert, "ConvertToMp3", "Convert audio in folder to MP3"),
     ];
 
     private readonly List<string> _selectedPaths = [];
+
+    // Cached per-process — Explorer keeps the extension loaded, so one allocation is enough
+    private static IntPtr _menuIconBitmap = IntPtr.Zero;
 
     // ── IShellExtInit ──────────────────────────────────────────────────────────
 
@@ -82,21 +82,24 @@ public class ContextMenuHandler : IShellExtInit, IContextMenu
 
     int IContextMenu.QueryContextMenu(IntPtr hmenu, uint indexMenu, uint idCmdFirst, uint idCmdLast, uint uFlags)
     {
-        if ((uFlags & 0x000F) > 1)   // CMF_DEFAULTONLY or similar exclusive flags
+        if ((uFlags & 0x1) != 0)   // CMF_DEFAULTONLY — Explorer only wants the default action
             return NativeMethods.S_OK;
 
+        var hBitmap = GetMenuIconBitmap();
         uint slot = indexMenu;
         foreach (var (offset, _, label) in Verbs)
         {
             var mii = new NativeMethods.MENUITEMINFO
             {
-                cbSize = (uint)Marshal.SizeOf<NativeMethods.MENUITEMINFO>(),
-                fMask = NativeMethods.MIIM_STRING | NativeMethods.MIIM_FTYPE
-                      | NativeMethods.MIIM_ID | NativeMethods.MIIM_STATE,
-                fType = NativeMethods.MFT_STRING,
-                fState = NativeMethods.MFS_ENABLED,
-                wID = idCmdFirst + offset,
+                cbSize     = (uint)Marshal.SizeOf<NativeMethods.MENUITEMINFO>(),
+                fMask      = NativeMethods.MIIM_STRING | NativeMethods.MIIM_FTYPE
+                           | NativeMethods.MIIM_ID     | NativeMethods.MIIM_STATE
+                           | (hBitmap != IntPtr.Zero ? NativeMethods.MIIM_BITMAP : 0),
+                fType      = NativeMethods.MFT_STRING,
+                fState     = NativeMethods.MFS_ENABLED,
+                wID        = idCmdFirst + offset,
                 dwTypeData = label,
+                hbmpItem   = hBitmap,
             };
             NativeMethods.InsertMenuItem(hmenu, slot++, true, ref mii);
         }
@@ -128,10 +131,7 @@ public class ContextMenuHandler : IShellExtInit, IContextMenu
             cmdId = match == default ? CmdConvert : match.Offset;
         }
 
-        if (cmdId == CmdOpenFolder)
-            LaunchUiWithFolderPicker();
-        else
-            LaunchUi(_selectedPaths);
+        LaunchUi(_selectedPaths);
 
         return NativeMethods.S_OK;
     }
@@ -168,21 +168,81 @@ public class ContextMenuHandler : IShellExtInit, IContextMenu
         Process.Start(new ProcessStartInfo(uiExe, args) { UseShellExecute = true });
     }
 
-    private static void LaunchUiWithFolderPicker()
-    {
-        var uiExe = ResolveUiExe();
-        if (!File.Exists(uiExe)) { ShowMissingExeError(uiExe); return; }
-
-        // --pick-folder tells the UI to show a FolderBrowserDialog on startup
-        Process.Start(new ProcessStartInfo(uiExe, "--pick-folder") { UseShellExecute = true });
-    }
-
     private static void ShowMissingExeError(string path) =>
         System.Windows.Forms.MessageBox.Show(
             $"UI executable not found:\n{path}",
             "Audio Batch Converter",
             System.Windows.Forms.MessageBoxButtons.OK,
             System.Windows.Forms.MessageBoxIcon.Error);
+
+    // ── icon helpers ──────────────────────────────────────────────────────────
+
+    private static IntPtr GetMenuIconBitmap()
+    {
+        if (_menuIconBitmap != IntPtr.Zero)
+        {
+            return _menuIconBitmap;
+        }
+
+        var uiExe = ResolveUiExe();
+        if (!File.Exists(uiExe))
+        {
+            return IntPtr.Zero;
+        }
+
+        var hIcon = NativeMethods.ExtractIcon(IntPtr.Zero, uiExe, 0);
+        if (hIcon == IntPtr.Zero)
+        {
+            return IntPtr.Zero;
+        }
+
+        try
+        {
+            _menuIconBitmap = CreatePremultipliedBitmap(hIcon, 16, 16);
+        }
+        finally
+        {
+            NativeMethods.DestroyIcon(hIcon);
+        }
+
+        return _menuIconBitmap;
+    }
+
+    private static IntPtr CreatePremultipliedBitmap(IntPtr hIcon, int w, int h)
+    {
+        var bmi = new NativeMethods.BITMAPV5HEADER
+        {
+            bV5Size        = (uint)Marshal.SizeOf<NativeMethods.BITMAPV5HEADER>(),
+            bV5Width       = w,
+            bV5Height      = h,
+            bV5Planes      = 1,
+            bV5BitCount    = 32,
+            bV5Compression = NativeMethods.BI_BITFIELDS,
+            bV5RedMask     = 0x00FF0000,
+            bV5GreenMask   = 0x0000FF00,
+            bV5BlueMask    = 0x000000FF,
+            bV5AlphaMask   = 0xFF000000,
+            bV5Endpoints   = new byte[36],
+        };
+
+        var hScreenDC = NativeMethods.GetDC(IntPtr.Zero);
+        var hBitmap   = NativeMethods.CreateDIBSection(
+            hScreenDC, ref bmi, NativeMethods.DIB_RGB_COLORS, out _, IntPtr.Zero, 0);
+        NativeMethods.ReleaseDC(IntPtr.Zero, hScreenDC);
+
+        if (hBitmap == IntPtr.Zero)
+        {
+            return IntPtr.Zero;
+        }
+
+        var hMemDC  = NativeMethods.CreateCompatibleDC(IntPtr.Zero);
+        var hOldBmp = NativeMethods.SelectObject(hMemDC, hBitmap);
+        NativeMethods.DrawIconEx(hMemDC, 0, 0, hIcon, w, h, 0, IntPtr.Zero, NativeMethods.DI_NORMAL);
+        NativeMethods.SelectObject(hMemDC, hOldBmp);
+        NativeMethods.DeleteDC(hMemDC);
+
+        return hBitmap;
+    }
 
     // ── COM registration helpers ───────────────────────────────────────────────
 

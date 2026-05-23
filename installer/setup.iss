@@ -1,5 +1,5 @@
 #define AppName "Audio Batch Converter"
-#define AppVersion "1.0.4"
+#define AppVersion "1.0.5"
 #define AppPublisher "Nachitous"
 #define AppURL "https://github.com/Nachitous/audio-batch-converter"
 #define AppExeName "AudioBatchConverter.UI.exe"
@@ -31,10 +31,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Source: "..\src\AudioBatchConverter.UI\bin\Release\net8.0-windows\win-x64\publish\*"; \
   DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
-; Shell extension (comhost + managed DLL)
-Source: "..\src\AudioBatchConverter.Shell\bin\Release\net8.0-windows\win-x64\publish\AudioBatchConverter.Shell.dll"; \
-  DestDir: "{app}"; Flags: ignoreversion
-Source: "..\src\AudioBatchConverter.Shell\bin\Release\net8.0-windows\win-x64\publish\{#ComHostDll}"; \
+; Shell extension (all publish output — comhost needs runtimeconfig.json to initialise .NET)
+Source: "..\src\AudioBatchConverter.Shell\bin\Release\net8.0-windows\win-x64\publish\*"; \
   DestDir: "{app}"; Flags: ignoreversion
 
 [Registry]
