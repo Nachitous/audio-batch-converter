@@ -1,9 +1,10 @@
 #define AppName "Audio Batch Converter"
-#define AppVersion "1.0.0"
+#define AppVersion "1.0.1"
 #define AppPublisher "Nachitous"
 #define AppURL "https://github.com/Nachitous/audio-batch-converter"
 #define AppExeName "AudioBatchConverter.UI.exe"
 #define ComHostDll "AudioBatchConverter.Shell.comhost.dll"
+#define DotNetRuntimeUrl "https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe"
 
 [Setup]
 AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
@@ -25,11 +26,11 @@ ArchitecturesInstallIn64BitMode=x64compatible
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-; UI executable and all its runtime files
+; UI executable and all its runtime files (includes bundled ffmpeg.exe)
 Source: "..\src\AudioBatchConverter.UI\bin\Release\net8.0-windows\win-x64\publish\*"; \
   DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
-; Shell extension (comhost + native library)
+; Shell extension (comhost + managed DLL)
 Source: "..\src\AudioBatchConverter.Shell\bin\Release\net8.0-windows\win-x64\publish\AudioBatchConverter.Shell.dll"; \
   DestDir: "{app}"; Flags: ignoreversion
 Source: "..\src\AudioBatchConverter.Shell\bin\Release\net8.0-windows\win-x64\publish\{#ComHostDll}"; \
@@ -40,14 +41,82 @@ Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
 Name: "{group}\Uninstall {#AppName}"; Filename: "{uninstallexe}"
 
 [Run]
-; Notify shell to refresh context menus
 Filename: "{sys}\ie4uinit.exe"; Parameters: "-show"; Flags: runhidden nowait; \
-  StatusMsg: "Refreshing Windows Explorer…"
+  StatusMsg: "Refreshing Windows Explorer..."
 
 [UninstallRun]
 Filename: "{sys}\ie4uinit.exe"; Parameters: "-show"; Flags: runhidden nowait
 
 [Code]
+var
+  DotNetDownloadPage: TDownloadWizardPage;
+
+function IsDotNet8DesktopInstalled(): Boolean;
+var
+  SubkeyNames: TArrayOfString;
+  i: Integer;
+begin
+  Result := False;
+  if not RegGetSubkeyNames(HKLM,
+      'SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App',
+      SubkeyNames) then
+    Exit;
+  for i := 0 to High(SubkeyNames) do
+    if Copy(SubkeyNames[i], 1, 2) = '8.' then
+    begin
+      Result := True;
+      Exit;
+    end;
+end;
+
+procedure InitializeWizard();
+begin
+  if not IsDotNet8DesktopInstalled() then
+  begin
+    DotNetDownloadPage := CreateDownloadPage(
+      'Installing prerequisites',
+      'Downloading .NET 8 Desktop Runtime...',
+      nil);
+    DotNetDownloadPage.Add('{#DotNetRuntimeUrl}', 'dotnet8-desktop-runtime.exe', '');
+  end;
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+var
+  ResultCode: Integer;
+begin
+  Result := True;
+
+  if (CurPageID = wpReady) and not IsDotNet8DesktopInstalled() then
+  begin
+    DotNetDownloadPage.Show;
+    try
+      try
+        DotNetDownloadPage.Download;
+      except
+        MsgBox('Failed to download .NET 8 Desktop Runtime.' + #13#10 +
+               'Please install it manually: https://dotnet.microsoft.com/download/dotnet/8.0',
+               mbError, MB_OK);
+        Result := False;
+        Exit;
+      end;
+    finally
+      DotNetDownloadPage.Hide;
+    end;
+
+    Exec(ExpandConstant('{tmp}\dotnet8-desktop-runtime.exe'),
+      '/install /passive /norestart', '', SW_SHOW, ewWaitUntilTerminated, ResultCode);
+
+    if not IsDotNet8DesktopInstalled() then
+    begin
+      MsgBox('.NET 8 Desktop Runtime installation failed.' + #13#10 +
+             'Please install it manually: https://dotnet.microsoft.com/download/dotnet/8.0',
+             mbError, MB_OK);
+      Result := False;
+    end;
+  end;
+end;
+
 { Kill any running Explorer windows during install/uninstall to allow DLL replacement }
 procedure KillExplorer();
 var

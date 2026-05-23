@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-05-23
+
+### Fixed
+- Shell extension: publish as framework-dependent — self-contained COM hosting is not supported by .NET, causing the extension to install but silently fail to load in Explorer
+
+### Added
+- Installer automatically downloads and silently installs .NET 8 Desktop Runtime (x64) if missing — no manual prereq step
+### Changed
+- README rewritten: CI + download badges, prominent download link, corrected requirements, updated dev setup
+
 ## [1.0.0] - 2026-05-23
 
 ### Added

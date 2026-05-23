@@ -27,9 +27,9 @@ if (-not (Test-Path $ffmpeg))
 dotnet publish "$repo\src\AudioBatchConverter.UI\AudioBatchConverter.UI.csproj" `
     -c Release -r win-x64 --self-contained -o $outDir
 
-# Publish Shell (brings comhost.dll + Core with it)
+# Publish Shell framework-dependent (self-contained breaks COM hosting)
 dotnet publish "$repo\src\AudioBatchConverter.Shell\AudioBatchConverter.Shell.csproj" `
-    -c Release -r win-x64 --self-contained -o $outDir
+    -c Release -r win-x64 --no-self-contained -o $outDir
 
 # Copy ffmpeg into the staging folder
 if (Test-Path $ffmpeg)
