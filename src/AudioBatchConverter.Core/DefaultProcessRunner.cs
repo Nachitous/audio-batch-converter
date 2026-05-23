@@ -13,6 +13,7 @@ public class DefaultProcessRunner : IProcessRunner
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
+            WorkingDirectory = Path.GetTempPath(),
         };
 
         using var process = Process.Start(psi)

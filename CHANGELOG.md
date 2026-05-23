@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-05-23
+
+### Fixed
+- Conversion silently fails on network locations (UNC paths): `CreateProcess` does not accept a UNC working directory — fixed by setting `WorkingDirectory` to the temp folder
+
+### Changed
+- Installer now uses the app icon
+
 ## [1.0.5] - 2026-05-23
 
 ### Fixed

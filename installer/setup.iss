@@ -1,5 +1,5 @@
 #define AppName "Audio Batch Converter"
-#define AppVersion "1.0.5"
+#define AppVersion "1.0.6"
 #define AppPublisher "Nachitous"
 #define AppURL "https://github.com/Nachitous/audio-batch-converter"
 #define AppExeName "AudioBatchConverter.UI.exe"
@@ -17,6 +17,7 @@ DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 OutputBaseFilename=AudioBatchConverterSetup-{#AppVersion}
 OutputDir=Output
+SetupIconFile=..\src\AudioBatchConverter.UI\app.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
