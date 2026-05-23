@@ -53,6 +53,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Lowercase image owner
+        run: echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -70,8 +73,8 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/${{ github.repository_owner }}/audio-batch-converter:${{ github.ref_name }}
-            ghcr.io/${{ github.repository_owner }}/audio-batch-converter:latest
+            ghcr.io/${{ env.OWNER }}/audio-batch-converter:${{ github.ref_name }}
+            ghcr.io/${{ env.OWNER }}/audio-batch-converter:latest
 
   # ── GitHub Release (waits for both) ─────────────────────────────────────────
   create-release:
@@ -81,30 +84,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Lowercase image owner
+        run: echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Extract changelog section
         shell: bash
         run: |
-          VERSION="${{ github.ref_name }}"
-          VERSION="${VERSION#v}"
-          python3 - <<'EOF'
-          import re, sys
+          python3 - <<'PYEOF'
+          import re
           version = "${{ github.ref_name }}".lstrip('v')
           text = open('CHANGELOG.md').read()
           m = re.search(
               r'## \[' + re.escape(version) + r'\][^\n]*\n(.*?)(?=\n## \[|\Z)',
               text, re.DOTALL)
           body = m.group(1).strip() if m else 'See [CHANGELOG.md](CHANGELOG.md) for the full history.'
-          body += f"""
+          body += """
 
-          ---
-          ### Docker
-          ```
-          docker pull ghcr.io/${{ github.repository_owner }}/audio-batch-converter:${{ github.ref_name }}
-          ```
-          See [docker-compose.yml](docker-compose.yml) for NAS setup.
-          """
+---
+### Docker
+```
+docker pull ghcr.io/${{ env.OWNER }}/audio-batch-converter:${{ github.ref_name }}
+```
+See [docker-compose.yml](docker-compose.yml) for NAS setup.
+"""
           open('release-notes.md', 'w').write(body)
-          EOF
+          PYEOF
 
       - name: Download installer artifact
         uses: actions/download-artifact@v4
