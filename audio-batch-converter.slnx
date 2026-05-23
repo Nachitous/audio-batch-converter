@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AudioBatchConverter.Core.Tests/AudioBatchConverter.Core.Tests.csproj" />
+    <Project Path="src/AudioBatchConverter.Core/AudioBatchConverter.Core.csproj" />
+    <Project Path="src/AudioBatchConverter.Shell/AudioBatchConverter.Shell.csproj" />
+    <Project Path="src/AudioBatchConverter.UI/AudioBatchConverter.UI.csproj" />
+  </Folder>
+</Solution>
