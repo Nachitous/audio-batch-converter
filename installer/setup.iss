@@ -1,5 +1,5 @@
 #define AppName "Audio Batch Converter"
-#define AppVersion "1.0.2"
+#define AppVersion "1.0.3"
 #define AppPublisher "Nachitous"
 #define AppURL "https://github.com/Nachitous/audio-batch-converter"
 #define AppExeName "AudioBatchConverter.UI.exe"
@@ -118,7 +118,7 @@ var
   ResultCode: Integer;
 begin
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/f /im explorer.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Exec(ExpandConstant('{windir}\explorer.exe'), '', '', SW_SHOW, ewNoWait, ResultCode);
+  Exec(ExpandConstant('{win}\explorer.exe'), '', '', SW_SHOW, ewNoWait, ResultCode);
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
