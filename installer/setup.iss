@@ -1,9 +1,10 @@
 #define AppName "Audio Batch Converter"
-#define AppVersion "1.0.3"
+#define AppVersion "1.0.4"
 #define AppPublisher "Nachitous"
 #define AppURL "https://github.com/Nachitous/audio-batch-converter"
 #define AppExeName "AudioBatchConverter.UI.exe"
 #define ComHostDll "AudioBatchConverter.Shell.comhost.dll"
+#define ShellClsid "{{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
 #define DotNetRuntimeUrl "https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe"
 
 [Setup]
@@ -34,7 +35,25 @@ Source: "..\src\AudioBatchConverter.UI\bin\Release\net8.0-windows\win-x64\publis
 Source: "..\src\AudioBatchConverter.Shell\bin\Release\net8.0-windows\win-x64\publish\AudioBatchConverter.Shell.dll"; \
   DestDir: "{app}"; Flags: ignoreversion
 Source: "..\src\AudioBatchConverter.Shell\bin\Release\net8.0-windows\win-x64\publish\{#ComHostDll}"; \
-  DestDir: "{app}"; Flags: ignoreversion regserver
+  DestDir: "{app}"; Flags: ignoreversion
+
+[Registry]
+; CLSID — points Explorer to the comhost DLL
+Root: HKCR; Subkey: "CLSID\{#ShellClsid}"; \
+  ValueType: string; ValueName: ""; ValueData: "AudioBatchConverter.ContextMenuHandler"; \
+  Flags: uninsdeletekey
+Root: HKCR; Subkey: "CLSID\{#ShellClsid}\InprocServer32"; \
+  ValueType: string; ValueName: ""; ValueData: "{app}\{#ComHostDll}"
+Root: HKCR; Subkey: "CLSID\{#ShellClsid}\InprocServer32"; \
+  ValueType: string; ValueName: "ThreadingModel"; ValueData: "Both"
+
+; Shell extension handlers
+Root: HKCR; Subkey: "Directory\shellex\ContextMenuHandlers\ConvertToMp3"; \
+  ValueType: string; ValueName: ""; ValueData: "{#ShellClsid}"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "Directory\Background\shellex\ContextMenuHandlers\ConvertToMp3"; \
+  ValueType: string; ValueName: ""; ValueData: "{#ShellClsid}"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "SystemFileAssociations\audio\shellex\ContextMenuHandlers\ConvertToMp3"; \
+  ValueType: string; ValueName: ""; ValueData: "{#ShellClsid}"; Flags: uninsdeletekey
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"

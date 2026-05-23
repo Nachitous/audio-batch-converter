@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-05-23
+
+### Fixed
+- Shell extension registration: replace `regserver` flag (calls regsvr32 at install time, fails when .NET runtime isn't fully initialised yet) with direct `[Registry]` entries — no runtime needed at install time, handles uninstall automatically
+- README: removed Project Structure and developer sections
+
 ## [1.0.3] - 2026-05-23
 
 ### Fixed
