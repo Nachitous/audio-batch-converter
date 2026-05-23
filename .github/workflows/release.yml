@@ -98,17 +98,10 @@ jobs:
               r'## \[' + re.escape(version) + r'\][^\n]*\n(.*?)(?=\n## \[|\Z)',
               text, re.DOTALL)
           body = m.group(1).strip() if m else 'See [CHANGELOG.md](CHANGELOG.md) for the full history.'
-          body += """
-
----
-### Docker
-```
-docker pull ghcr.io/${{ env.OWNER }}/audio-batch-converter:${{ github.ref_name }}
-```
-See [docker-compose.yml](docker-compose.yml) for NAS setup.
-"""
           open('release-notes.md', 'w').write(body)
           PYEOF
+          printf '\n---\n### Docker\n```\ndocker pull ghcr.io/%s/audio-batch-converter:%s\n```\nSee [docker-compose.yml](docker-compose.yml) for NAS setup.\n' \
+            "$OWNER" "${{ github.ref_name }}" >> release-notes.md
 
       - name: Download installer artifact
         uses: actions/download-artifact@v4
