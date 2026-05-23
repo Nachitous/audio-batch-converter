@@ -1,5 +1,5 @@
 #define AppName "Audio Batch Converter"
-#define AppVersion "1.0.1"
+#define AppVersion "1.0.2"
 #define AppPublisher "Nachitous"
 #define AppURL "https://github.com/Nachitous/audio-batch-converter"
 #define AppExeName "AudioBatchConverter.UI.exe"
@@ -53,20 +53,14 @@ var
 
 function IsDotNet8DesktopInstalled(): Boolean;
 var
-  SubkeyNames: TArrayOfString;
-  i: Integer;
+  FindRec: TFindRec;
 begin
-  Result := False;
-  if not RegGetSubkeyNames(HKLM,
-      'SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App',
-      SubkeyNames) then
-    Exit;
-  for i := 0 to High(SubkeyNames) do
-    if Copy(SubkeyNames[i], 1, 2) = '8.' then
-    begin
-      Result := True;
-      Exit;
-    end;
+  { File-system check: look for any 8.x.x folder under the shared Desktop runtime dir }
+  Result := FindFirst(
+    ExpandConstant('{commonpf64}') + '\dotnet\shared\Microsoft.WindowsDesktop.App\8.*',
+    FindRec);
+  if Result then
+    FindClose(FindRec);
 end;
 
 procedure InitializeWizard();
@@ -107,7 +101,8 @@ begin
     Exec(ExpandConstant('{tmp}\dotnet8-desktop-runtime.exe'),
       '/install /passive /norestart', '', SW_SHOW, ewWaitUntilTerminated, ResultCode);
 
-    if not IsDotNet8DesktopInstalled() then
+    { 0 = success, 3010 = success + reboot pending — both are fine }
+    if (ResultCode <> 0) and (ResultCode <> 3010) and not IsDotNet8DesktopInstalled() then
     begin
       MsgBox('.NET 8 Desktop Runtime installation failed.' + #13#10 +
              'Please install it manually: https://dotnet.microsoft.com/download/dotnet/8.0',

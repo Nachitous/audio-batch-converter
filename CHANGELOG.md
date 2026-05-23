@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-05-23
+
+### Fixed
+- Installer .NET 8 detection: replaced unreliable registry subkey check with a file-system check (`{commonpf64}\dotnet\shared\Microsoft.WindowsDesktop.App\8.*`) — fixes false "installation failed" error on machines where .NET 8 is present but not in the expected registry path
+- Installer no longer shows failure dialog when the .NET runtime installer exits with code 3010 (success + reboot pending)
+
 ## [1.0.1] - 2026-05-23
 
 ### Fixed
