@@ -6,58 +6,90 @@ namespace AudioBatchConverter.UI;
 
 public partial class ConversionForm : Form
 {
-    private static readonly int ImgPending = 0;
+    private static readonly int ImgPending    = 0;
     private static readonly int ImgInProgress = 1;
-    private static readonly int ImgDone = 2;
-    private static readonly int ImgError = 3;
+    private static readonly int ImgDone       = 2;
+    private static readonly int ImgError      = 3;
 
-    private readonly string[] _inputPaths;
+    private string[] _inputPaths;
     private readonly ConversionEngine _engine = new();
     private CancellationTokenSource _cts = new();
 
     private readonly Dictionary<ConversionJob, TreeNode> _nodeMap = [];
     private bool _hasErrors;
     private string? _firstLogPath;
+    private bool _conversionComplete;
 
     public ConversionForm(string[] inputPaths)
     {
         _inputPaths = inputPaths;
         InitializeComponent();
 
-        _btnCancel.Click += (_, _) => CancelConversion();
+        this.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? this.Icon;
+
+        _btnCancel.Click += (_, _) => { if (_conversionComplete) Close(); else CancelConversion(); };
         _btnOpenLog.Click += (_, _) => OpenLog();
 
         _engine.JobStatusChanged += OnJobStatusChanged;
         _engine.ProgressChanged += OnProgressChanged;
     }
 
-    protected override void OnLoad(EventArgs e)
+    protected override void OnShown(EventArgs e)
     {
-        base.OnLoad(e);
-        _ = StartConversionAsync();
+        base.OnShown(e);
+
+        if (_inputPaths.Contains("--pick-folder"))
+        {
+            OnBrowseClicked(this, EventArgs.Empty);
+        }
+        else if (_inputPaths.Length > 0)
+        {
+            RunConversion();
+        }
     }
 
-    private async Task StartConversionAsync()
+    private void OnBrowseClicked(object? sender, EventArgs e)
     {
-        _engine.LoadPaths(_inputPaths);
-
-        if (_engine.Jobs.Count == 0)
+        var folder = NativeFolderPicker.Pick(IntPtr.Zero, "Select a folder to convert");
+        if (folder is null)
         {
-            MessageBox.Show(
-                "No audio files found in the selected path(s).",
-                "Nothing to convert",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
-            Close();
             return;
         }
 
-        BuildTree();
-        _progressBar.Maximum = _engine.Jobs.Count;
-        _lblCurrentFile.Text = $"Starting conversion of {_engine.Jobs.Count} file(s)…";
+        _inputPaths = [folder];
+        _hasErrors = false;
+        _firstLogPath = null;
+        _btnOpenLog.Visible = false;
+        RunConversion();
+    }
+
+    // async void is correct here — top-level fire-and-forget on the UI thread
+    private async void RunConversion()
+    {
+        _conversionComplete = false;
+        _btnCancel.Text = "Cancel";
+        _btnCancel.Enabled = true;
+        _cts = new CancellationTokenSource();
 
         try
         {
+            await ScanAndBuildTreeAsync();
+
+            if (_engine.Jobs.Count == 0)
+            {
+                MessageBox.Show(
+                    "No audio files found in the selected path(s).",
+                    "Nothing to convert",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                _lblCurrentFile.Text = "Ready — File > Open Folder to begin";
+                _btnCancel.Enabled = false;
+                return;
+            }
+
+            _progressBar.Maximum = _engine.Jobs.Count;
+            _lblCurrentFile.Text = $"Starting — {_engine.Jobs.Count} file(s)";
+
             await _engine.RunAsync(_cts.Token);
             OnConversionComplete();
         }
@@ -66,13 +98,22 @@ public partial class ConversionForm : Form
             _lblCurrentFile.Text = "Cancelled.";
             _btnCancel.Enabled = false;
         }
+        catch (Exception ex)
+        {
+            _lblCurrentFile.Text = $"Error: {ex.Message}";
+            _btnCancel.Enabled = false;
+        }
     }
 
-    private void BuildTree()
+    private async Task ScanAndBuildTreeAsync()
     {
-        _treeView.BeginUpdate();
+        _lblCurrentFile.Text = "Scanning…";
         _treeView.Nodes.Clear();
+        _nodeMap.Clear();
 
+        await Task.Run(() => _engine.LoadPaths(_inputPaths));
+
+        _treeView.BeginUpdate();
         var dirNodes = new Dictionary<string, TreeNode>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var job in _engine.Jobs)
@@ -101,21 +142,28 @@ public partial class ConversionForm : Form
 
     private void OnJobStatusChanged(object? sender, JobStatusChangedEventArgs e)
     {
-        if (InvokeRequired) { Invoke(() => OnJobStatusChanged(sender, e)); return; }
+        if (InvokeRequired)
+        {
+            Invoke(() => OnJobStatusChanged(sender, e));
+            return;
+        }
 
-        if (!_nodeMap.TryGetValue(e.Job, out var node)) return;
+        if (!_nodeMap.TryGetValue(e.Job, out var node))
+        {
+            return;
+        }
 
         node.ImageIndex = node.SelectedImageIndex = e.Job.Status switch
         {
             JobStatus.InProgress => ImgInProgress,
-            JobStatus.Done => ImgDone,
-            JobStatus.Error => ImgError,
-            _ => ImgPending,
+            JobStatus.Done       => ImgDone,
+            JobStatus.Error      => ImgError,
+            _                    => ImgPending,
         };
 
         if (e.Job.Status == JobStatus.InProgress)
         {
-            _lblCurrentFile.Text = $"Converting: {Path.GetFileName(e.Job.SourcePath)}";
+            _lblCurrentFile.Text = Path.GetFileName(e.Job.SourcePath);
             node.EnsureVisible();
         }
 
@@ -129,18 +177,45 @@ public partial class ConversionForm : Form
 
     private void OnProgressChanged(object? sender, int completed)
     {
-        if (InvokeRequired) { Invoke(() => OnProgressChanged(sender, completed)); return; }
-        _progressBar.Value = completed;
+        if (InvokeRequired)
+        {
+            Invoke(() => OnProgressChanged(sender, completed));
+            return;
+        }
+        _progressBar.Value = Math.Min(completed, _progressBar.Maximum);
         _lblProgress.Text = $"{completed} / {_engine.Jobs.Count}";
     }
 
     private void OnConversionComplete()
     {
-        if (InvokeRequired) { Invoke(OnConversionComplete); return; }
-        _lblCurrentFile.Text = _hasErrors
-            ? "Done — some files failed. See log for details."
-            : "Done — all files converted successfully.";
-        _btnCancel.Enabled = false;
+        if (InvokeRequired)
+        {
+            Invoke(OnConversionComplete);
+            return;
+        }
+
+        _conversionComplete = true;
+        _btnCancel.Text = "Exit";
+        _btnCancel.Enabled = true;
+
+        if (_hasErrors)
+        {
+            _lblCurrentFile.Text = "Done — some files failed.";
+            MessageBox.Show(
+                "Conversion finished — some files failed.\nCheck the log for details.",
+                "Done",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+        else
+        {
+            _lblCurrentFile.Text = "Done — all files converted.";
+            MessageBox.Show(
+                "All files converted successfully.",
+                "Done",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
     }
 
     private void CancelConversion()
@@ -151,10 +226,13 @@ public partial class ConversionForm : Form
 
     private void OpenLog()
     {
-        if (_firstLogPath is null || !File.Exists(_firstLogPath)) return;
+        if (_firstLogPath is null || !File.Exists(_firstLogPath))
+        {
+            return;
+        }
         Process.Start(new ProcessStartInfo(_firstLogPath) { UseShellExecute = true });
     }
 
-    private static string TruncatePath(string path, int maxLen = 60) =>
+    private static string TruncatePath(string path, int maxLen = 70) =>
         path.Length <= maxLen ? path : "…" + path[^(maxLen - 1)..];
 }

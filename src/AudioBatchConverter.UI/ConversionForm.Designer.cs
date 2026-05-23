@@ -7,7 +7,8 @@ partial class ConversionForm
 {
     private System.ComponentModel.IContainer components = null!;
 
-    private SplitContainer _splitContainer = null!;
+    private MenuStrip _menuStrip = null!;
+    private ToolStripMenuItem _menuItemOpenFolder = null!;
     private TreeView _treeView = null!;
     private Label _lblCurrentFile = null!;
     private ProgressBar _progressBar = null!;
@@ -33,13 +34,26 @@ partial class ConversionForm
         _statusImages.Images.Add(MakeDot(Color.SeaGreen));    // 2 done
         _statusImages.Images.Add(MakeDot(Color.Crimson));     // 3 error
 
-        _splitContainer = new SplitContainer
+        // ── menu bar ──────────────────────────────────────────────────────────
+
+        _menuItemOpenFolder = new ToolStripMenuItem("Open Folder…")
         {
-            Dock = DockStyle.Fill,
-            SplitterDistance = 340,
-            Panel1MinSize = 200,
-            Panel2MinSize = 280,
+            ShortcutKeys = Keys.Control | Keys.O,
         };
+        _menuItemOpenFolder.Click += OnBrowseClicked;
+
+        var menuItemExit = new ToolStripMenuItem("Exit");
+        menuItemExit.Click += (_, _) => Close();
+
+        var menuItemFile = new ToolStripMenuItem("File");
+        menuItemFile.DropDownItems.Add(_menuItemOpenFolder);
+        menuItemFile.DropDownItems.Add(new ToolStripSeparator());
+        menuItemFile.DropDownItems.Add(menuItemExit);
+
+        _menuStrip = new MenuStrip();
+        _menuStrip.Items.Add(menuItemFile);
+
+        // ── tree view ─────────────────────────────────────────────────────────
 
         _treeView = new TreeView
         {
@@ -48,56 +62,37 @@ partial class ConversionForm
             ShowLines = true,
             FullRowSelect = true,
             Font = new Font("Segoe UI", 9f),
+            BorderStyle = BorderStyle.None,
         };
 
-        var rightPanel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            Padding = new Padding(12),
-            RowCount = 5,
-            ColumnCount = 1,
-        };
-        rightPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        rightPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        rightPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        rightPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        rightPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        // ── bottom status bar ─────────────────────────────────────────────────
 
         _lblCurrentFile = new Label
         {
             AutoSize = false,
             Dock = DockStyle.Fill,
-            Height = 40,
             Font = new Font("Segoe UI", 9f),
-            Text = "Scanning…",
+            Text = "Ready — File > Open Folder to begin",
             TextAlign = ContentAlignment.MiddleLeft,
         };
 
         _progressBar = new ProgressBar
         {
-            Dock = DockStyle.Fill,
-            Height = 22,
+            Width = 160,
+            Height = 18,
             Minimum = 0,
             Maximum = 100,
             Style = ProgressBarStyle.Continuous,
+            Margin = new Padding(0, 11, 6, 0),
         };
 
         _lblProgress = new Label
         {
-            AutoSize = false,
-            Dock = DockStyle.Fill,
-            Height = 24,
+            AutoSize = true,
             Font = new Font("Segoe UI", 8.5f),
             ForeColor = SystemColors.GrayText,
             Text = "",
-            TextAlign = ContentAlignment.MiddleLeft,
-        };
-
-        var btnPanel = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            AutoSize = true,
-            FlowDirection = FlowDirection.LeftToRight,
+            Margin = new Padding(0, 12, 8, 0),
         };
 
         _btnCancel = new Button
@@ -105,7 +100,7 @@ partial class ConversionForm
             Text = "Cancel",
             Width = 90,
             Height = 32,
-            Margin = new Padding(0, 8, 8, 0),
+            Margin = new Padding(0, 6, 6, 6),
         };
 
         _btnOpenLog = new Button
@@ -113,25 +108,50 @@ partial class ConversionForm
             Text = "Open Log",
             Width = 90,
             Height = 32,
-            Margin = new Padding(0, 8, 0, 0),
+            Margin = new Padding(0, 6, 0, 6),
             Visible = false,
         };
 
-        btnPanel.Controls.AddRange([_btnCancel, _btnOpenLog]);
+        var statusBar = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 5,
+            RowCount = 1,
+            Height = 44,
+            Padding = new Padding(8, 0, 8, 0),
+            BackColor = SystemColors.ControlLight,
+        };
+        statusBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); // label
+        statusBar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));     // bar
+        statusBar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));     // count
+        statusBar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));     // cancel
+        statusBar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));     // log
+        statusBar.Controls.Add(_lblCurrentFile, 0, 0);
+        statusBar.Controls.Add(_progressBar, 1, 0);
+        statusBar.Controls.Add(_lblProgress, 2, 0);
+        statusBar.Controls.Add(_btnCancel, 3, 0);
+        statusBar.Controls.Add(_btnOpenLog, 4, 0);
 
-        rightPanel.Controls.Add(_lblCurrentFile, 0, 0);
-        rightPanel.Controls.Add(_progressBar, 0, 1);
-        rightPanel.Controls.Add(_lblProgress, 0, 2);
-        rightPanel.Controls.Add(btnPanel, 0, 3);
+        // ── main layout ───────────────────────────────────────────────────────
 
-        _splitContainer.Panel1.Controls.Add(_treeView);
-        _splitContainer.Panel2.Controls.Add(rightPanel);
+        var mainLayout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            RowCount = 2,
+            ColumnCount = 1,
+        };
+        mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        mainLayout.Controls.Add(_treeView, 0, 0);
+        mainLayout.Controls.Add(statusBar, 0, 1);
 
-        Controls.Add(_splitContainer);
+        Controls.Add(mainLayout);
+        Controls.Add(_menuStrip);
+        MainMenuStrip = _menuStrip;
 
         Text = "Audio Batch Converter";
-        Size = new Size(800, 500);
-        MinimumSize = new Size(600, 400);
+        Size = new Size(720, 520);
+        MinimumSize = new Size(500, 350);
         Font = new Font("Segoe UI", 9f);
         StartPosition = FormStartPosition.CenterScreen;
     }

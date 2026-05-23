@@ -11,4 +11,12 @@
   <ItemGroup>
     <ProjectReference Include="..\AudioBatchConverter.Core\AudioBatchConverter.Core.csproj" />
   </ItemGroup>
+
+  <!-- Bundle ffmpeg.exe if it has been downloaded via tools\get-ffmpeg.ps1 -->
+  <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\..\..\tools\ffmpeg.exe')">
+    <Content Include="$(MSBuildProjectDirectory)\..\..\tools\ffmpeg.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ffmpeg.exe</Link>
+    </Content>
+  </ItemGroup>
 </Project>

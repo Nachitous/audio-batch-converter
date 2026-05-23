@@ -22,6 +22,9 @@ Thumbs.db
 desktop.ini
 .DS_Store
 
+## Tools — binaries downloaded at build time, not committed
+tools/ffmpeg.exe
+
 ## Logs
 *.log
 audio-batch-converter-errors.txt

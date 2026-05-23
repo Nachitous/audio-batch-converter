@@ -17,7 +17,7 @@ public class ConversionEngine
 
     public ConversionEngine(FfmpegConverter? converter = null)
     {
-        _converter = converter ?? new FfmpegConverter();
+        _converter = converter ?? new FfmpegConverter(FfmpegConverter.FindFfmpeg());
     }
 
     public void LoadPaths(IEnumerable<string> paths)
@@ -48,7 +48,8 @@ public class ConversionEngine
             {
                 job.Status = JobStatus.Error;
                 job.ErrorMessage = result.ErrorOutput;
-                ErrorLogger.Log(job.SourcePath, result.ErrorOutput ?? "Unknown error");
+                try { ErrorLogger.Log(job.SourcePath, result.ErrorOutput ?? "Unknown error"); }
+                catch { /* log write failed – don't abort the conversion loop */ }
             }
 
             RaiseJobChanged(job);
