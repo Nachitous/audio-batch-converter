@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-05-23
+
+### Fixed
+- Conversion hangs on network paths: stdout was redirected but never read — once the OS pipe buffer (~64 KB) fills ffmpeg blocks and never exits; fixed by reading stdout and stderr concurrently
+- Cancelling a hung conversion now kills the ffmpeg process immediately instead of leaving it running in the background
+
 ## [1.0.6] - 2026-05-23
 
 ### Fixed
