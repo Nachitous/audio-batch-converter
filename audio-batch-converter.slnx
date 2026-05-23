@@ -4,5 +4,6 @@
     <Project Path="src/AudioBatchConverter.Core/AudioBatchConverter.Core.csproj" />
     <Project Path="src/AudioBatchConverter.Shell/AudioBatchConverter.Shell.csproj" />
     <Project Path="src/AudioBatchConverter.UI/AudioBatchConverter.UI.csproj" />
+    <Project Path="src/AudioBatchConverter.Worker/AudioBatchConverter.Worker.csproj" />
   </Folder>
 </Solution>

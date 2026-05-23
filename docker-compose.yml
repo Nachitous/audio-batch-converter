@@ -1,0 +1,19 @@
+# Standalone deployment.
+# Copy .env.example → .env, fill in your values, then: docker compose up -d
+# To integrate into an existing media-server stack, see docs/nas-deployment.md.
+
+services:
+  audio-batch-converter:
+    image: ghcr.io/nachitous/audio-batch-converter:latest
+    container_name: audio-batch-converter
+    restart: unless-stopped
+    user: "${PUID}:${PGID}"
+    environment:
+      TZ: ${TZ}
+      Worker__BrowserRoot: ${BROWSER_ROOT:-/volume1}
+      # Worker__Extensions: ".flac,.wav,.ogg,.m4a,.aac,.wma,.opus"
+    ports:
+      - "${PORT:-8080}:8080"
+    volumes:
+      - ${MUSIC_DIR}:${MUSIC_DIR}:rw
+      - ${DOWNLOADS_DIR}:${DOWNLOADS_DIR}:rw

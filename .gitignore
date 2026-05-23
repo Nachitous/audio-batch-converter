@@ -25,6 +25,9 @@ desktop.ini
 ## Tools — binaries downloaded at build time, not committed
 tools/ffmpeg.exe
 
+## Docker — local env (never commit real values)
+.env
+
 ## Logs
 *.log
 audio-batch-converter-errors.txt

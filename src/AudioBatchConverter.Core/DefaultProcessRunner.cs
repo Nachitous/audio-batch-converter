@@ -26,12 +26,13 @@ public class DefaultProcessRunner : IProcessRunner
             try { process.Kill(entireProcessTree: true); } catch { }
         });
 
-        // Read stdout and stderr concurrently. Redirecting stdout but never
-        // draining it causes a deadlock once the OS pipe buffer (~64 KB) fills.
-        var stdoutTask = process.StandardOutput.ReadToEndAsync(ct);
-        var stderrTask = process.StandardError.ReadToEndAsync(ct);
-        await Task.WhenAll(stdoutTask, stderrTask);
-        await process.WaitForExitAsync(ct);
-        return (process.ExitCode, await stderrTask);
+        // Drain both pipes on thread-pool threads. ReadToEnd blocks until the
+        // process closes its handles (i.e. exits), which avoids the pipe-buffer
+        // deadlock that ReadToEndAsync(ct) can hit when ct is cancelled mid-read.
+        var stdoutTask = Task.Run(() => process.StandardOutput.ReadToEnd());
+        var stderrTask = Task.Run(() => process.StandardError.ReadToEnd());
+        await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
+
+        return (process.ExitCode, stderrTask.Result);
     }
 }

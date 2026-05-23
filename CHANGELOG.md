@@ -5,6 +5,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-23
+
+### Added
+- Docker image published to `ghcr.io/nachitous/audio-batch-converter` (amd64 + arm64); included in every GitHub Release
+- `AudioBatchConverter.Worker`: ASP.NET Core web app for NAS deployment — runs ffmpeg locally to avoid network-transfer slowness
+- Interactive web UI: filesystem browser, on-demand folder conversion, per-file job list with live status and elapsed time, "keep originals" and "recursive" toggles, clear-completed button
+- `docker-compose.yml` and `.env.example` for standalone deployment
+- `docs/nas-deployment.md`: step-by-step guide for integrating into an existing `media-server` Docker stack on Synology
+
 ## [1.0.7] - 2026-05-23
 
 ### Fixed
