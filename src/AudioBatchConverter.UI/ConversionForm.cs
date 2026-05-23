@@ -14,6 +14,7 @@ public partial class ConversionForm : Form
     private string[] _inputPaths;
     private readonly ConversionEngine _engine = new();
     private CancellationTokenSource _cts = new();
+    private AppSettings _settings = AppSettings.Load();
 
     private readonly Dictionary<ConversionJob, TreeNode> _nodeMap = [];
     private bool _hasErrors;
@@ -25,13 +26,17 @@ public partial class ConversionForm : Form
         _inputPaths = inputPaths;
         InitializeComponent();
 
-        this.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? this.Icon;
+        var icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        this.Icon = icon ?? this.Icon;
+        _notifyIcon.Icon = icon;
 
         _btnCancel.Click += (_, _) => { if (_conversionComplete) Close(); else CancelConversion(); };
         _btnOpenLog.Click += (_, _) => OpenLog();
 
         _engine.JobStatusChanged += OnJobStatusChanged;
         _engine.ProgressChanged += OnProgressChanged;
+
+        ApplySettings();
     }
 
     protected override void OnShown(EventArgs e)
@@ -61,6 +66,30 @@ public partial class ConversionForm : Form
         _firstLogPath = null;
         _btnOpenLog.Visible = false;
         RunConversion();
+    }
+
+    private void OnSettingsClicked(object? sender, EventArgs e)
+    {
+        using var dlg = new SettingsForm(_settings);
+        if (dlg.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        dlg.ApplyTo(_settings);
+        _settings.Save();
+        ApplySettings();
+    }
+
+    private void ApplySettings()
+    {
+        _engine.KeepOriginals = _settings.KeepOriginals;
+
+        var ffmpegPath = string.IsNullOrWhiteSpace(_settings.FfmpegPath)
+            ? FfmpegConverter.FindFfmpeg()
+            : _settings.FfmpegPath;
+
+        _engine.SetFfmpegPath(ffmpegPath);
     }
 
     // async void is correct here — top-level fire-and-forget on the UI thread
@@ -198,24 +227,32 @@ public partial class ConversionForm : Form
         _btnCancel.Text = "Exit";
         _btnCancel.Enabled = true;
 
-        if (_hasErrors)
-        {
-            _lblCurrentFile.Text = "Done — some files failed.";
-            MessageBox.Show(
-                "Conversion finished — some files failed.\nCheck the log for details.",
-                "Done",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning);
-        }
-        else
-        {
-            _lblCurrentFile.Text = "Done — all files converted.";
-            MessageBox.Show(
-                "All files converted successfully.",
-                "Done",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
-        }
+        string title   = "Audio Batch Converter";
+        string message = _hasErrors
+            ? "Conversion finished — some files failed.\nCheck the log for details."
+            : "All files converted successfully.";
+        ToolTipIcon tipIcon = _hasErrors ? ToolTipIcon.Warning : ToolTipIcon.Info;
+
+        _lblCurrentFile.Text = _hasErrors ? "Done — some files failed." : "Done — all files converted.";
+
+        ShowBalloon(title, message, tipIcon);
+        MessageBox.Show(message, title, MessageBoxButtons.OK,
+            _hasErrors ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
+    }
+
+    private void ShowBalloon(string title, string text, ToolTipIcon icon)
+    {
+        _notifyIcon.Visible = true;
+        _notifyIcon.ShowBalloonTip(5000, title, text, icon);
+        _notifyIcon.BalloonTipClosed  += HideTrayIcon;
+        _notifyIcon.BalloonTipClicked += HideTrayIcon;
+    }
+
+    private void HideTrayIcon(object? sender, EventArgs e)
+    {
+        _notifyIcon.BalloonTipClosed  -= HideTrayIcon;
+        _notifyIcon.BalloonTipClicked -= HideTrayIcon;
+        _notifyIcon.Visible = false;
     }
 
     private void CancelConversion()

@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Download ffmpeg
+        shell: pwsh
+        run: tools/get-ffmpeg.ps1
+
+      - name: Publish UI (self-contained, win-x64)
+        run: >
+          dotnet publish src/AudioBatchConverter.UI/AudioBatchConverter.UI.csproj
+          -c Release -r win-x64 --self-contained
+
+      - name: Publish Shell (self-contained, win-x64)
+        run: >
+          dotnet publish src/AudioBatchConverter.Shell/AudioBatchConverter.Shell.csproj
+          -c Release -r win-x64 --self-contained
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer
+        run: iscc installer/setup.iss
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: installer/Output/*.exe
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installer/Output/*.exe
+          generate_release_notes: true

@@ -26,11 +26,12 @@
 - [x] Installer script (Inno Setup) that registers/unregisters the COM DLL
 
 ## Milestone 4 — Polish & Distribution
-- [ ] App icon + tray notification on completion
-- [ ] Settings (custom ffmpeg path, keep-originals toggle)
+- [x] Tray notification on completion (balloon tip; icon hidden until triggered)
+- [x] Settings (custom ffmpeg path, keep-originals toggle) — stored in %APPDATA%\AudioBatchConverter\settings.json
 - [ ] Signed installer
-- [ ] GitHub Actions CI: build + test on push
-- [ ] GitHub Release with installer artifact
+- [x] GitHub Actions CI: build + test on push
+- [x] GitHub Release with installer artifact (triggered by `v*` tag push)
+- [x] `tools/install-dev.ps1` — build + register shell extension for local development
 
 ## Out of Scope (for now)
 - Video-to-audio extraction

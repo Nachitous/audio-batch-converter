@@ -9,6 +9,7 @@ partial class ConversionForm
 
     private MenuStrip _menuStrip = null!;
     private ToolStripMenuItem _menuItemOpenFolder = null!;
+    private NotifyIcon _notifyIcon = null!;
     private TreeView _treeView = null!;
     private Label _lblCurrentFile = null!;
     private ProgressBar _progressBar = null!;
@@ -34,6 +35,15 @@ partial class ConversionForm
         _statusImages.Images.Add(MakeDot(Color.SeaGreen));    // 2 done
         _statusImages.Images.Add(MakeDot(Color.Crimson));     // 3 error
 
+        // ── tray icon (used for completion balloon) ───────────────────────────
+
+        _notifyIcon = new NotifyIcon(components)
+        {
+            Text = "Audio Batch Converter",
+            Visible = false,
+        };
+        _notifyIcon.DoubleClick += (_, _) => { Show(); WindowState = FormWindowState.Normal; Activate(); };
+
         // ── menu bar ──────────────────────────────────────────────────────────
 
         _menuItemOpenFolder = new ToolStripMenuItem("Open Folder…")
@@ -42,11 +52,16 @@ partial class ConversionForm
         };
         _menuItemOpenFolder.Click += OnBrowseClicked;
 
+        var menuItemSettings = new ToolStripMenuItem("Settings…");
+        menuItemSettings.Click += OnSettingsClicked;
+
         var menuItemExit = new ToolStripMenuItem("Exit");
         menuItemExit.Click += (_, _) => Close();
 
         var menuItemFile = new ToolStripMenuItem("File");
         menuItemFile.DropDownItems.Add(_menuItemOpenFolder);
+        menuItemFile.DropDownItems.Add(new ToolStripSeparator());
+        menuItemFile.DropDownItems.Add(menuItemSettings);
         menuItemFile.DropDownItems.Add(new ToolStripSeparator());
         menuItemFile.DropDownItems.Add(menuItemExit);
 

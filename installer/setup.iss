@@ -50,6 +50,8 @@ Filename: "{sys}\ie4uinit.exe"; Parameters: "-show"; Flags: runhidden nowait
 [Code]
 { Kill any running Explorer windows during install/uninstall to allow DLL replacement }
 procedure KillExplorer();
+var
+  ResultCode: Integer;
 begin
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/f /im explorer.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec(ExpandConstant('{windir}\explorer.exe'), '', '', SW_SHOW, ewNoWait, ResultCode);

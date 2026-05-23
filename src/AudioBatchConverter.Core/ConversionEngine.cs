@@ -7,10 +7,11 @@ public class JobStatusChangedEventArgs(ConversionJob job) : EventArgs
 
 public class ConversionEngine
 {
-    private readonly FfmpegConverter _converter;
+    private FfmpegConverter _converter;
     private readonly List<ConversionJob> _jobs = [];
 
     public IReadOnlyList<ConversionJob> Jobs => _jobs;
+    public bool KeepOriginals { get; set; }
 
     public event EventHandler<JobStatusChangedEventArgs>? JobStatusChanged;
     public event EventHandler<int>? ProgressChanged;
@@ -18,6 +19,11 @@ public class ConversionEngine
     public ConversionEngine(FfmpegConverter? converter = null)
     {
         _converter = converter ?? new FfmpegConverter(FfmpegConverter.FindFfmpeg());
+    }
+
+    public void SetFfmpegPath(string path)
+    {
+        _converter = new FfmpegConverter(path);
     }
 
     public void LoadPaths(IEnumerable<string> paths)
@@ -42,7 +48,10 @@ public class ConversionEngine
             if (result.Succeeded)
             {
                 job.Status = JobStatus.Done;
-                TryDeleteOriginal(job.SourcePath);
+                if (!KeepOriginals)
+                {
+                    TryDeleteOriginal(job.SourcePath);
+                }
             }
             else
             {
