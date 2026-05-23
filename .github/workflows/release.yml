@@ -38,6 +38,18 @@ jobs:
       - name: Build installer
         run: iscc installer/setup.iss
 
+      - name: Extract changelog section
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          $content  = Get-Content CHANGELOG.md -Raw
+          $pattern  = "(?s)## \[$([regex]::Escape($version))\][^\n]*\n(.*?)(?=\n## \[|\z)"
+          if ($content -match $pattern) {
+            $matches[1].Trim() | Set-Content release-notes.md
+          } else {
+            "See [CHANGELOG.md](CHANGELOG.md) for the full history." | Set-Content release-notes.md
+          }
+
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
@@ -47,5 +59,6 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          name: "Audio Batch Converter ${{ github.ref_name }}"
+          body_path: release-notes.md
           files: installer/Output/*.exe
-          generate_release_notes: true
